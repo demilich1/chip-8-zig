@@ -33,7 +33,7 @@ pub const ScreenBuffer = struct {
     }
 
     pub fn xor(self: *ScreenBuffer, x: u16, y: u16) bool {
-        const index = self.getIndex(x, y);
+        const index = self.getIndex(x % SCREEN_WIDTH, y % SCREEN_HEIGHT);
         const result = self.pixels[index];
         self.pixels[index] = result != true;
         return result;

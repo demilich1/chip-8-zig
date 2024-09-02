@@ -133,20 +133,20 @@ pub const Chip8 = struct {
 
         self.v[REG_F] = 0;
 
-        for (0..n) |y_line| {
-            const y_line_u16: u16 = @intCast(y_line);
+        var y_line: u16 = 0;
+        while (y_line < n) : (y_line += 1) {
+            var x_line: u16 = 0;
             const pixel_row = self.memory[self.i + y_line];
-            for (0..8) |x_line| {
-                const x_line_u16: u16 = @intCast(x_line);
-                const shift = @as(u16, 0x80) >> @intCast(x_line_u16);
-                if (pixel_row & shift != 0) {
-                    const x = sx + x_line_u16;
-                    const y = sy + y_line_u16;
+            while (x_line < 8) : (x_line += 1) {
+                const bits_to_shift: u3 = @intCast(7 - x_line);
+                const sprite_bit = (pixel_row >> bits_to_shift) & 0x1;
+                if (sprite_bit == 0) continue;
 
-                    // println!("Drawing at {:?}, {:?}...", x, y);
-                    if (self.screen.xor(x, y)) {
-                        self.v[REG_F] = 1;
-                    }
+                const x = sx + x_line;
+                const y = sy + y_line;
+
+                if (self.screen.xor(x, y)) {
+                    self.v[REG_F] = 1;
                 }
             }
         }

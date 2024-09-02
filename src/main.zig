@@ -9,7 +9,7 @@ pub fn main() !void {
     const allocator = gpa.allocator();
 
     var chip8 = try emulator.Chip8.init(&allocator);
-    try chip8.loadRom("roms/IBM");
+    try chip8.loadRom("roms/SPLASH");
 
     createWindow(&chip8);
 
