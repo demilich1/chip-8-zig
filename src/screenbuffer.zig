@@ -3,7 +3,10 @@ const raylib = @cImport(@cInclude("raylib.h"));
 pub const SCREEN_WIDTH: u16 = 64;
 pub const SCREEN_HEIGHT: u16 = 32;
 
-pub const SCREEN_SCALING = 16;
+pub const SCREEN_SCALING = 24;
+
+const BACKGROUND_COLOR = raylib.BLACK;
+const FOREGROUND_COLOR = raylib.WHITE;
 
 pub const ScreenBuffer = struct {
     width: u16,
@@ -13,18 +16,13 @@ pub const ScreenBuffer = struct {
 
     pub fn init() ScreenBuffer {
         const SIZE = SCREEN_WIDTH * SCREEN_HEIGHT;
-        return ScreenBuffer{
-            .width = SCREEN_WIDTH,
-            .height = SCREEN_HEIGHT,
-            .pixels = [_]bool{false} ** SIZE,
-            .dirty = false
-        };
+        return ScreenBuffer{ .width = SCREEN_WIDTH, .height = SCREEN_HEIGHT, .pixels = [_]bool{false} ** SIZE, .dirty = false };
     }
 
     pub fn render(self: *ScreenBuffer) void {
         if (!self.dirty) return;
 
-        raylib.ClearBackground(raylib.BLACK);
+        raylib.ClearBackground(BACKGROUND_COLOR);
         for (0..self.width) |x_u| {
             for (0..self.height) |y_u| {
                 const x: u16 = @intCast(x_u);
@@ -35,7 +33,7 @@ pub const ScreenBuffer = struct {
                 const draw_x = x * SCREEN_SCALING;
                 const draw_y = y * SCREEN_SCALING;
 
-                raylib.DrawRectangle(draw_x, draw_y, SCREEN_SCALING, SCREEN_SCALING, raylib.WHITE);
+                raylib.DrawRectangle(draw_x, draw_y, SCREEN_SCALING, SCREEN_SCALING, FOREGROUND_COLOR);
             }
         }
 

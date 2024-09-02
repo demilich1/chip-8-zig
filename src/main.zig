@@ -11,11 +11,10 @@ pub fn main() !void {
     const allocator = gpa.allocator();
 
     var chip8 = try emulator.Chip8.init(&allocator);
-    try chip8.loadRom("roms/UFO");
+    try chip8.loadRom("roms/PONG2");
 
     createWindow(&chip8);
 
-    // clean up
     emulator.destroy(chip8, &allocator);
 
     const deinit_status = gpa.deinit();

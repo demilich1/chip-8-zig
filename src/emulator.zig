@@ -38,18 +38,18 @@ const FONT_DATA = [_]u8{
 };
 
 pub const Chip8 = struct {
-    screen: ScreenBuffer,
+    screen: ScreenBuffer, // output
     memory: []u8, // main memory
     regs: [REGISTERS]u8, // general purpose registers
     stack: [STACK_SIZE]u16, // stack
-    keys: IntegerBitSet(16),
-    rng: Rng,
+    keys: IntegerBitSet(16), // which keys are currently pressed
+    rng: Rng, // random number generator
     pc: u16, // program counter
     sp: u8, // stack pointer
-    i: u16, // special purpose address regist
+    i_reg: u16, // special purpose address register
     delay_timer: u8, // delay timer
     sound_timer: u8, // sound timer
-    key_target_reg: u8,
+    key_target_reg: u8, // target register when waiting for key press
 
     pub fn init(allocator: *const std.mem.Allocator) !Chip8 {
         const bytes = try allocator.alloc(u8, MEMORY_SIZE);
@@ -62,7 +62,7 @@ pub const Chip8 = struct {
             .rng = Rng.init(1337),
             .pc = 0,
             .sp = 0,
-            .i = 0,
+            .i_reg = 0,
             .delay_timer = 0,
             .sound_timer = 0,
             .key_target_reg = NONE,
@@ -116,8 +116,7 @@ pub const Chip8 = struct {
     }
 
     fn fetchOpcode(self: *const Chip8) u16 {
-        var p1: u16 = self.memory[self.pc];
-        p1 = p1 << 8;
+        const p1: u16 = @as(u16, self.memory[self.pc]) << 8;
         const p2: u16 = self.memory[self.pc + 1];
         return p1 | p2;
     }
@@ -278,7 +277,7 @@ pub const Chip8 = struct {
     }
 
     fn loadi(self: *Chip8, addr: u16) void {
-        self.i = addr;
+        self.i_reg = addr;
     }
 
     fn rand(self: *Chip8, s: u8, nn: u8) void {
@@ -294,7 +293,7 @@ pub const Chip8 = struct {
 
         var y_line: u16 = 0;
         while (y_line < n) : (y_line += 1) {
-            const pixel_row = self.memory[self.i + y_line];
+            const pixel_row = self.memory[self.i_reg + y_line];
             var x_line: u16 = 0;
             while (x_line < 8) : (x_line += 1) {
                 const bits_to_shift: u3 = @intCast(7 - x_line);
@@ -346,32 +345,32 @@ pub const Chip8 = struct {
 
     fn addi(self: *Chip8, s: u8) void {
         const value: u16 = self.regs[s];
-        self.i = (self.i +% value) & 0xFFF;
+        self.i_reg = (self.i_reg +% value) & 0xFFF;
     }
 
     fn loadSprite(self: *Chip8, s: u8) void {
         const value: u16 = self.regs[s] * 5;
-        self.i = FONT_START_OFFSET + (value & 0xFFF);
+        self.i_reg = FONT_START_OFFSET + (value & 0xFFF);
     }
 
     fn bcd(self: *Chip8, s: u8) void {
         const vx = self.regs[s];
-        self.memory[self.i] = vx / 100;
-        self.memory[self.i + 1] = (vx / 10) % 10;
-        self.memory[self.i + 2] = (vx % 100) % 10;
+        self.memory[self.i_reg] = vx / 100;
+        self.memory[self.i_reg + 1] = (vx / 10) % 10;
+        self.memory[self.i_reg + 2] = (vx % 100) % 10;
     }
 
     fn store(self: *Chip8, s: u8) void {
         var i: u16 = 0;
         while (i <= s) : (i += 1) {
-            self.memory[self.i + i] = self.regs[i];
+            self.memory[self.i_reg + i] = self.regs[i];
         }
     }
 
     fn read(self: *Chip8, s: u8) void {
         var i: u16 = 0;
         while (i <= s) : (i += 1) {
-            self.regs[i] = self.memory[self.i + i];
+            self.regs[i] = self.memory[self.i_reg + i];
         }
     }
 };
