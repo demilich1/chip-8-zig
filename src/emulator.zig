@@ -1,5 +1,6 @@
 const std = @import("std");
 const math = @import("std").math;
+const IntegerBitSet = @import("std").bit_set.IntegerBitSet;
 
 const opcode = @import("opcode.zig");
 const Op = opcode.Op;
@@ -39,6 +40,7 @@ pub const Chip8 = struct {
     memory: []u8, // main memory
     v: [REGISTERS]u8, // general purpose registers
     stack: [STACK_SIZE]u16, // stack
+    keys: IntegerBitSet(16),
     pc: u16, // program counter
     sp: u8, // stack pointer
     i: u16, // special purpose address regist
@@ -52,6 +54,7 @@ pub const Chip8 = struct {
             .memory = bytes,
             .v = [_]u8{0} ** REGISTERS,
             .stack = [_]u16{0} ** STACK_SIZE,
+            .keys = IntegerBitSet(16).initEmpty(),
             .pc = 0,
             .sp = 0,
             .i = 0,
@@ -74,13 +77,28 @@ pub const Chip8 = struct {
         }
     }
 
+    pub fn setKey(self: *Chip8, key: u8) void {
+        self.keys.set(key);
+        //std.debug.print("Key pressed: {}\n", .{key});
+    }
+
+    pub fn unsetKey(self: *Chip8, key: u8) void {
+        self.keys.unset(key);
+        //std.debug.print("Key released: {}\n", .{key});
+    }
+
     pub fn runCycle(self: *Chip8) void {
         const opcode_raw = self.fetchOpcode();
         const decoded_opcode = opcode.decode(opcode_raw);
-        std.debug.print("OpCode {}\n", .{decoded_opcode});
+        //std.debug.print("OpCode {}\n", .{decoded_opcode});
 
         self.pc += DEFAULT_PC_INC;
         self.executeInstruction(decoded_opcode);
+
+        if (self.dt > 0)
+            self.dt -= 1;
+        if (self.st > 0)
+            self.st -= 1;
     }
 
     fn fetchOpcode(self: *const Chip8) u16 {
@@ -113,10 +131,17 @@ pub const Chip8 = struct {
             Op.shl => self.shiftLeft(instruction.getS()),
             Op.loadi => self.loadi(instruction.getAddr()),
             Op.draw => self.draw(instruction.getS(), instruction.getT(), instruction.getN()),
+            Op.skp => self.skipPressed(instruction.getS()),
+            Op.sknp => self.skipNotPressed(instruction.getS()),
+            Op.keyd => self.waitForKey(instruction.getS()),
             Op.moved => self.moveDelay(instruction.getS()),
+            Op.loadd => self.loadDelayTimer(instruction.getS()),
+            Op.loads => self.loadSoundTimer(instruction.getS()),
+            Op.addi => self.addi(instruction.getS()),
+            Op.ldspr => self.loadSprite(instruction.getS()),
+            Op.bcd => self.bcd(instruction.getS()),
             Op.stor => self.store(instruction.getS()),
             Op.read => self.read(instruction.getS()),
-            Op.bcd => self.bcd(instruction.getS()),
             else => std.debug.panic("Trying to execute unknown instruction: {}", .{instruction.op}),
         }
     }
@@ -265,8 +290,52 @@ pub const Chip8 = struct {
         }
     }
 
+    fn skipPressed(self: *Chip8, s: u8) void {
+        const key = self.v[s];
+        if (self.keys.isSet(key)) {
+            self.pc += DEFAULT_PC_INC;
+        }
+    }
+
+    fn skipNotPressed(self: *Chip8, s: u8) void {
+        const key = self.v[s];
+        if (!self.keys.isSet(key)) {
+            self.pc += DEFAULT_PC_INC;
+        }
+    }
+
+    fn waitForKey(self: *Chip8, s: u8) void {
+        const key = self.v[s];
+        std.debug.print("Waiting for specific key pressed: {}\n", .{key});
+    }
+
     fn moveDelay(self: *Chip8, s: u8) void {
         self.v[s] = self.dt;
+    }
+
+    fn loadDelayTimer(self: *Chip8, s: u8) void {
+        self.dt = self.v[s];
+    }
+
+    fn loadSoundTimer(self: *Chip8, s: u8) void {
+        self.st = self.v[s];
+    }
+
+    fn addi(self: *Chip8, s: u8) void {
+        const value: u16 = self.v[s];
+        self.i = (self.i +% value) & 0xFFF;
+    }
+
+    fn loadSprite(self: *Chip8, s: u8) void {
+        const value: u16 = self.v[s] * 5;
+        self.i = FONT_START_OFFSET + (value & 0xFFF);
+    }
+
+    fn bcd(self: *Chip8, s: u8) void {
+        const vx = self.v[s];
+        self.memory[self.i] = vx / 100;
+        self.memory[self.i + 1] = (vx / 10) % 10;
+        self.memory[self.i + 2] = (vx % 100) % 10;
     }
 
     fn store(self: *Chip8, s: u8) void {
@@ -281,13 +350,6 @@ pub const Chip8 = struct {
         while (i <= s) : (i += 1) {
             self.v[i] = self.memory[self.i + i];
         }
-    }
-
-    fn bcd(self: *Chip8, s: u8) void {
-        const vx = self.v[s];
-        self.memory[self.i] = vx / 100;
-        self.memory[self.i + 1] = (vx / 10) % 10;
-        self.memory[self.i + 2] = (vx % 100) % 10;
     }
 };
 

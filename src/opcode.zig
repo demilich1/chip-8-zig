@@ -22,6 +22,8 @@ pub const Op = enum {
     skrne, // 9st0; Skip next instruction if register s is not equal to register t
     loadi, // Annn; Load index with value nnn
     draw, // Dstn; Draw n byte sprite at x location reg s, y location reg t
+    skp, // Es9E; Skip next instruction if key with the value of s is pressed
+    sknp, // EsA1; Skip next instruction if key with the value of s is not pressed
     moved, // Fs07; Move delay timer value into register s
     keyd, // Fs0A; Wait for keypress and store in register s
     loadd, // Fs15; Load delay timer with value in register s
@@ -91,6 +93,11 @@ pub fn decode(val: u16) OpCode {
         0x9000 => Op.skrne,
         0xA000 => Op.loadi,
         0xD000 => Op.draw,
+        0xE000 => switch (getN34(val)) {
+            0x009E => Op.skp,
+            0x00A1 => Op.sknp,
+            else => Op.err,
+        },
         0xF000 => switch (getN34(val)) {
             0x0007 => Op.moved,
             0x000A => Op.keyd,
