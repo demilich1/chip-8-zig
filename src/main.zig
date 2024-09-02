@@ -4,14 +4,14 @@ const raylib = @cImport(@cInclude("raylib.h"));
 const emulator = @import("emulator.zig");
 const screenbuffer = @import("screenbuffer.zig");
 
-const CYCLES_PER_FRAME: u8 = 4;
+const CYCLES_PER_FRAME: u8 = 6;
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
 
     var chip8 = try emulator.Chip8.init(&allocator);
-    try chip8.loadRom("roms/INVADERS");
+    try chip8.loadRom("roms/UFO");
 
     createWindow(&chip8);
 

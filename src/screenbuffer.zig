@@ -9,13 +9,21 @@ pub const ScreenBuffer = struct {
     width: u16,
     height: u16,
     pixels: [SCREEN_WIDTH * SCREEN_HEIGHT]bool,
+    dirty: bool,
 
     pub fn init() ScreenBuffer {
         const SIZE = SCREEN_WIDTH * SCREEN_HEIGHT;
-        return ScreenBuffer{ .width = SCREEN_WIDTH, .height = SCREEN_HEIGHT, .pixels = [_]bool{false} ** SIZE };
+        return ScreenBuffer{
+            .width = SCREEN_WIDTH,
+            .height = SCREEN_HEIGHT,
+            .pixels = [_]bool{false} ** SIZE,
+            .dirty = false
+        };
     }
 
-    pub fn render(self: *const ScreenBuffer) void {
+    pub fn render(self: *ScreenBuffer) void {
+        if (!self.dirty) return;
+
         raylib.ClearBackground(raylib.BLACK);
         for (0..self.width) |x_u| {
             for (0..self.height) |y_u| {
@@ -30,6 +38,8 @@ pub const ScreenBuffer = struct {
                 raylib.DrawRectangle(draw_x, draw_y, SCREEN_SCALING, SCREEN_SCALING, raylib.WHITE);
             }
         }
+
+        self.dirty = false;
     }
 
     pub fn xor(self: *ScreenBuffer, x: u16, y: u16) bool {
@@ -45,10 +55,13 @@ pub const ScreenBuffer = struct {
         }
     }
 
+    pub fn markDirty(self: *ScreenBuffer) void {
+        self.dirty = true;
+    }
+
     fn getIndex(self: *const ScreenBuffer, x: u16, y: u16) u16 {
+        const index = x * self.height + y;
         const len: u16 = @intCast(self.pixels.len);
-        var index = x * self.height + y;
-        index = index % len;
-        return index;
+        return index % len;
     }
 };

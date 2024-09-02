@@ -21,6 +21,7 @@ pub const Op = enum {
     shl, // 8s0E; Shift bits in register s 1 bit to the left - bit 7 shifts to register F
     skrne, // 9st0; Skip next instruction if register s is not equal to register t
     loadi, // Annn; Load index with value nnn
+    rand, // Ctnn; Generate random number between 0 and nn and store in t
     draw, // Dstn; Draw n byte sprite at x location reg s, y location reg t
     skp, // Es9E; Skip next instruction if key with the value of s is pressed
     sknp, // EsA1; Skip next instruction if key with the value of s is not pressed
@@ -92,6 +93,7 @@ pub fn decode(val: u16) OpCode {
         },
         0x9000 => Op.skrne,
         0xA000 => Op.loadi,
+        0xC000 => Op.rand,
         0xD000 => Op.draw,
         0xE000 => switch (getN34(val)) {
             0x009E => Op.skp,
