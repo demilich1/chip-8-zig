@@ -7,6 +7,7 @@ const opcode = @import("opcode.zig");
 const Op = opcode.Op;
 const Rom = @import("rom.zig").Rom;
 const ScreenBuffer = @import("screenbuffer.zig").ScreenBuffer;
+const AudioDevice = @import("audio.zig").AudioDevice;
 
 const FONT_START_OFFSET: u16 = 0x050;
 const ROM_START_OFFSET: u16 = 0x200;
@@ -39,6 +40,7 @@ const FONT_DATA = [_]u8{
 
 pub const Chip8 = struct {
     screen: ScreenBuffer, // output
+    audio_device: AudioDevice, // sound device
     memory: []u8, // main memory
     regs: [REGISTERS]u8, // general purpose registers
     stack: [STACK_SIZE]u16, // stack
@@ -55,6 +57,7 @@ pub const Chip8 = struct {
         const bytes = try allocator.alloc(u8, MEMORY_SIZE);
         var self = Chip8{
             .screen = ScreenBuffer.init(),
+            .audio_device = AudioDevice.init(),
             .memory = bytes,
             .regs = [_]u8{0} ** REGISTERS,
             .stack = [_]u16{0} ** STACK_SIZE,
@@ -111,8 +114,13 @@ pub const Chip8 = struct {
 
         if (self.delay_timer > 0)
             self.delay_timer -= 1;
-        if (self.sound_timer > 0)
+        if (self.sound_timer > 0) {
             self.sound_timer -= 1;
+
+            if (self.sound_timer == 0) {
+                self.audio_device.stop();
+            }
+        }
     }
 
     fn fetchOpcode(self: *const Chip8) u16 {
@@ -341,6 +349,10 @@ pub const Chip8 = struct {
 
     fn loadSoundTimer(self: *Chip8, s: u8) void {
         self.sound_timer = self.regs[s];
+
+        if (self.sound_timer > 0) {
+            self.audio_device.play();
+        }
     }
 
     fn addi(self: *Chip8, s: u8) void {
@@ -376,5 +388,6 @@ pub const Chip8 = struct {
 };
 
 pub fn destroy(chip8: Chip8, allocator: *const std.mem.Allocator) void {
+    chip8.audio_device.deinit();
     allocator.free(chip8.memory);
 }
